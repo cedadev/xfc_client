@@ -109,6 +109,8 @@ def do_quota():
         data = response.json()
         used = data["quota_used"]
         allocated = data["quota_size"]
+        total = data["total_used"]
+        hard_limit = data["hard_limit_size"]
         sys.stdout.write(bcolors.MAGENTA+\
               "Quota for user: " + settings.USER + "\n" + bcolors.ENDC +\
               "    Used      : " + sizeof_fmt(used) + "\n" +\
@@ -118,7 +120,16 @@ def do_quota():
         else:
             sys.stdout.write(bcolors.GREEN)
         sys.stdout.write("    Remaining : " + sizeof_fmt(allocated - used) + bcolors.ENDC + "\n")
-              
+        
+        sys.stdout.write("------------------------\n")
+        sys.stdout.write("    Total size: " + sizeof_fmt(total) + "\n")
+        sys.stdout.write("    Hard limit: " + sizeof_fmt(hard_limit) + "\n")        
+        if hard_limit - total < 0:
+            sys.stdout.write(bcolors.RED)
+        else:
+            sys.stdout.write(bcolors.GREEN)
+        sys.stdout.write("    Remaining : " + sizeof_fmt(hard_limit - total) + bcolors.ENDC + "\n")
+
     elif response.status_code == 404:
 		user_not_initialized_message()
 
@@ -188,6 +199,9 @@ def do_schedule(full_paths):
         # HTTP API supports multiple scheduled deletions per user, even though this 
         # functionality is not used yet, so just get the first
         data = response.json()[0]
+        if len(data["files"]) == 0:
+            sys.stdout.write(bcolors.GREEN + "No files scheduled for deletion\n" + bcolors.ENDC)
+            return
         mountpoint = data["cache_disk"]
         date = dateutil.parser.parse(data["time_delete"])
         # print the Scheduled message
@@ -206,6 +220,37 @@ def do_schedule(full_paths):
         user_not_initialized_message()
 
 
+def do_predict(full_paths):
+    """Send the HTTP request to the service which predicts when the user will exceed their quota"""
+    # Get a list of scheduled deletions for this user
+    url = settings.XFC_API_URL + "predict_deletions?name=" + settings.USER
+    response = requests.get(url)
+    if response.status_code == 200:
+        # HTTP API supports multiple scheduled deletions per user, even though this 
+        # functionality is not used yet, so just get the first
+        data = response.json()
+        if len(data["files"]) == 0:
+            sys.stdout.write(bcolors.GREEN + "Quota will never be exceeded!\n" + bcolors.ENDC)
+            return
+        mountpoint = data["cache_disk"]
+        date = dateutil.parser.parse(data["time_predict"])
+        sys.stdout.write(bcolors.RED + "Quota is predicted to be exceeded on")
+        sys.stdout.write("% 2i %s %d %02d:%02d" % (date.day, calendar.month_abbr[date.month], date.year, date.hour, date.minute))
+        sys.stdout.write(" by " + sizeof_fmt(data["over_quota"]))
+        sys.stdout.write(bcolors.ENDC + "\n")
+        # print the Scheduled message
+        sys.stdout.write("Files predicted to be deleted\n")
+        # loop over all the files
+        for file in data["files"]:
+            if full_paths:
+                path = data["cache_disk"] + file
+            else:
+                path = file
+            sys.stdout.write("   " + path + "\n")
+    elif response.status_code == 404:
+        user_not_initialized_message()
+
+
 if __name__ == "__main__":
     # help string for the command parsing
     command_help = "Available commands are : \n" +\
@@ -215,12 +260,13 @@ if __name__ == "__main__":
                    "quota    : Get the remaining free space in your quota\n"+\
                    "list     : List the files in your storage area in the transfer cache\n"+\
                    "notify   : Switch on / off email notifications of scheduled deletions (default is off)\n"+\
-                   "schedule : List the files that are scheduled for deletion and their deletion time\n"
+                   "schedule : List the files that are scheduled for deletion and their deletion time\n"+\
+                   "predict  : Predict when the quota will be exceeded based on the current files and list which files will be deleted\n"
                    
     parser = argparse.ArgumentParser(prog="XFC", formatter_class=argparse.RawTextHelpFormatter, 
                                      description="CEDA transfer cache (XFC) command line tool")
     parser.add_argument("--version", action="version", version="%(prog)s " + settings.VERSION)
-    parser.add_argument("cmd", choices=["init", "path", "email", "quota", "list", "notify", "schedule", "version"],
+    parser.add_argument("cmd", choices=["init", "path", "email", "quota", "list", "notify", "schedule", "predict", "version"],
                                help=command_help, metavar="command")
     parser.add_argument("-f", action="store_true", default=False, help="Show full paths when listing files (default is off)")
     parser.add_argument("-m", action="store", default="", help="Pattern to match against (substring search) when listing files")
@@ -265,3 +311,5 @@ if __name__ == "__main__":
         do_notify()
     elif args.cmd == "schedule":
         do_schedule(full_paths)
+    elif args.cmd == "predict":
+        do_predict(full_paths)
