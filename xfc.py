@@ -17,10 +17,11 @@ from math import log
 
 class settings:
     """Settings for the xfc command line tool."""
-    XFC_SERVER_URL = "http://0.0.0.0:8001/xfc_control"  # location of the xfc_control server / app
+    XFC_SERVER_URL = "https://130.246.130.14/xfc_control"  # location of the xfc_control server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
     USER = os.environ["USER"] # the USER name
     VERSION = "0.1" # version of this software
+    VERIFY = False
 
 
 unit_list = zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB'], [0, 0, 1, 1, 1, 1, 1])
@@ -62,10 +63,11 @@ def do_init(email=""):
     data = {"name" : settings.USER}
     if email != "":
     	data["email"] = email
-    response = requests.post(url, data=json.dumps(data))
+    	
+    response = requests.post(url, data=json.dumps(data), verify=settings.VERIFY)
     # check the response code
-    data = response.json()
     if response.status_code == 200:
+        data = response.json()
         sys.stdout.write( bcolors.GREEN+\
               "** SUCCESS ** - user initiliazed with:\n" + bcolors.ENDC +\
               "    username: " + data["name"] + "\n" +\
@@ -74,7 +76,7 @@ def do_init(email=""):
               "    path: " + data["cache_path"] + "\n")
     else:
         sys.stdout.write(bcolors.RED+\
-              "** ERROR ** - " + data["error"] + bcolors.ENDC + "\n")
+              "** ERROR ** - cannot initialise user " + settings.USER + bcolors.ENDC + "\n")
     
     
 def do_email(email=""):
@@ -82,7 +84,7 @@ def do_email(email=""):
     url = settings.XFC_API_URL + "user?name=" + settings.USER
     data = {"name" : settings.USER,
             "email": email}
-    response = requests.put(url, data=json.dumps(data))
+    response = requests.put(url, data=json.dumps(data), verify=settings.VERIFY)
     if response.status_code == 200:
         data = response.json()
         sys.stdout.write(bcolors.GREEN+\
@@ -93,7 +95,7 @@ def do_email(email=""):
 def do_path():
     """Send the HTTP request (GET) and process to get the path to the user space on the cache."""
     url = settings.XFC_API_URL + "user?name=" + settings.USER
-    response = requests.get(url)
+    response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
         data = response.json()
         sys.stdout.write(data["cache_path"]+"\n")
@@ -104,7 +106,7 @@ def do_path():
 def do_quota():
     """Send the HTTP request (GET) and process to get the remaining quota and total quota for the user."""
     url = settings.XFC_API_URL + "user?name=" + settings.USER
-    response = requests.get(url)
+    response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
         data = response.json()
         used = data["quota_used"]
@@ -144,7 +146,7 @@ def do_list(full_path, file_match, info):
     else:
         url += "&full_path=0"
     # send the request
-    response = requests.get(url)
+    response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
         data = response.json()
         for d in data:
@@ -172,7 +174,7 @@ def do_notify():
     """Send the HTTP request (PUT) to switch on / off notifications for the user."""
     # first get the status of notifications
     url = settings.XFC_API_URL + "user?name=" + settings.USER
-    response = requests.get(url)
+    response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
         data = response.json()
         notify = data["notify"]
@@ -180,7 +182,7 @@ def do_notify():
         put_url = settings.XFC_API_URL + "user?name=" + settings.USER
         put_data = {"name" : settings.USER,
                     "notify": not notify}
-        response = requests.put(url, data=json.dumps(put_data))
+        response = requests.put(url, data=json.dumps(put_data), verify=settings.VERIFY)
         if response.status_code == 200:
             data = response.json()
             sys.stdout.write(bcolors.GREEN+\
@@ -194,7 +196,7 @@ def do_schedule(full_paths):
     """Send the HTTP request (GET) to list the user's files which are scheduled for deletion."""
     # Get a list of scheduled deletions for this user
     url = settings.XFC_API_URL + "scheduled_deletions?name=" + settings.USER
-    response = requests.get(url)
+    response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
         # HTTP API supports multiple scheduled deletions per user, even though this 
         # functionality is not used yet, so just get the first
@@ -224,7 +226,7 @@ def do_predict(full_paths):
     """Send the HTTP request to the service which predicts when the user will exceed their quota"""
     # Get a list of scheduled deletions for this user
     url = settings.XFC_API_URL + "predict_deletions?name=" + settings.USER
-    response = requests.get(url)
+    response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
         # HTTP API supports multiple scheduled deletions per user, even though this 
         # functionality is not used yet, so just get the first
