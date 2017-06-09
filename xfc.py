@@ -52,7 +52,7 @@ class bcolors:
     
 
 def user_not_initialized_message():
-	sys.stdout.write(bcolors.RED+\
+    sys.stdout.write(bcolors.RED+\
 		  "** ERROR ** - User " + settings.USER + " not initialized yet." + bcolors.ENDC +\
 		  "  Run " + bcolors.YELLOW + "xfc.py init" + bcolors.ENDC + " first.\n")
     
@@ -62,7 +62,7 @@ def do_init(email=""):
     url = settings.XFC_API_URL + "user"
     data = {"name" : settings.USER}
     if email != "":
-    	data["email"] = email
+        data["email"] = email
     	
     response = requests.post(url, data=json.dumps(data), verify=settings.VERIFY)
     # check the response code
@@ -75,6 +75,7 @@ def do_init(email=""):
               "    quota: " + sizeof_fmt(data["quota_size"]) + "\n" +\
               "    path: " + data["cache_path"] + "\n")
     else:
+        print response.content
         sys.stdout.write(bcolors.RED+\
               "** ERROR ** - cannot initialise user " + settings.USER + bcolors.ENDC + "\n")
     
@@ -90,7 +91,7 @@ def do_email(email=""):
         sys.stdout.write(bcolors.GREEN+\
               "** SUCCESS ** - user email updated to: " + data["email"] + bcolors.ENDC + "\n")
     elif response.status_code == 404:
-		user_not_initialized_message()
+        user_not_initialized_message()
 
 def do_path():
     """Send the HTTP request (GET) and process to get the path to the user space on the cache."""
@@ -100,7 +101,7 @@ def do_path():
         data = response.json()
         sys.stdout.write(data["cache_path"]+"\n")
     elif response.status_code == 404:
-		user_not_initialized_message()
+        user_not_initialized_message()
         
 
 def do_quota():
@@ -133,7 +134,7 @@ def do_quota():
         sys.stdout.write("    Remaining : " + sizeof_fmt(hard_limit - total) + bcolors.ENDC + "\n")
 
     elif response.status_code == 404:
-		user_not_initialized_message()
+        user_not_initialized_message()
 
 
 def do_list(full_path, file_match, info):
@@ -167,7 +168,7 @@ def do_list(full_path, file_match, info):
             # sys.stdout.write( out the other info if requested
             sys.stdout.write("\n")
     elif response.statis_code == 404:
-    	user_not_initialized_message()
+        user_not_initialized_message()
 
     
 def do_notify():
