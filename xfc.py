@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-"""Command line tool for interacting with the CEDA transfer cache (XFC) for users who are
+"""Command line tool for interacting with the JASMIN transfer cache (XFC) for users who are
 logged into JASMIN and have full JASMIN accounts."""
 
 # Author : Neil R Massey
@@ -15,9 +15,14 @@ import calendar
 
 from math import log
 
+# switch off warnings
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 class settings:
     """Settings for the xfc command line tool."""
-    XFC_SERVER_URL = "https://130.246.130.14/xfc_control"  # location of the xfc_control server / app
+    XFC_SERVER_URL = "https://192.168.51.25/xfc_control"  # location of the xfc_control server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
     USER = os.environ["USER"] # the USER name
     VERSION = "0.1" # version of this software
@@ -55,7 +60,14 @@ def user_not_initialized_message():
     sys.stdout.write(bcolors.RED+\
 		  "** ERROR ** - User " + settings.USER + " not initialized yet." + bcolors.ENDC +\
 		  "  Run " + bcolors.YELLOW + "xfc.py init" + bcolors.ENDC + " first.\n")
-    
+
+
+def print_response_error(response):
+    """Print a concise summary of the error, rather than a whole output of html"""
+    for il in response.content.split("\n"):
+        if "Exception" in il:
+            print il
+
 
 def do_init(email=""):
     """Send the HTTP request (POST) to initialize a user's cache space."""
@@ -75,9 +87,8 @@ def do_init(email=""):
               "    quota: " + sizeof_fmt(data["quota_size"]) + "\n" +\
               "    path: " + data["cache_path"] + "\n")
     else:
-        print response.content
         sys.stdout.write(bcolors.RED+\
-              "** ERROR ** - cannot initialise user " + settings.USER + bcolors.ENDC + "\n")
+              "** ERROR ** - cannot initialize user " + settings.USER + bcolors.ENDC + "\n")
     
     
 def do_email(email=""):
@@ -92,6 +103,7 @@ def do_email(email=""):
               "** SUCCESS ** - user email updated to: " + data["email"] + bcolors.ENDC + "\n")
     elif response.status_code == 404:
         user_not_initialized_message()
+
 
 def do_path():
     """Send the HTTP request (GET) and process to get the path to the user space on the cache."""
@@ -267,7 +279,7 @@ if __name__ == "__main__":
                    "predict  : Predict when the quota will be exceeded based on the current files and list which files will be deleted\n"
                    
     parser = argparse.ArgumentParser(prog="XFC", formatter_class=argparse.RawTextHelpFormatter, 
-                                     description="CEDA transfer cache (XFC) command line tool")
+                                     description="JASMIN transfer cache (XFC) command line tool")
     parser.add_argument("--version", action="version", version="%(prog)s " + settings.VERSION)
     parser.add_argument("cmd", choices=["init", "path", "email", "quota", "list", "notify", "schedule", "predict", "version"],
                                help=command_help, metavar="command")
