@@ -15,7 +15,7 @@ setup(
                       'python_dateutil',
     ],
     include_package_data=True,
-    license='my License',  # example license
+    license='BSD License',  # example license
     description='A command line client to control temporary file caching on groupworkspaces on JASMIN.',
     long_description=README,
     url='http://www.ceda.ac.uk/',
