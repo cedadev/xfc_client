@@ -22,7 +22,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class settings:
     """Settings for the xfc command line tool."""
-    XFC_SERVER_URL = "https://130.246.130.5/xfc_control"  # location of the xfc_control server / app
+    XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"  # location of the xfc_control server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
     USER = os.environ["USER"] # the USER name
     VERSION = "0.1" # version of this software
