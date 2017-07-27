@@ -266,7 +266,7 @@ def do_predict(full_paths):
         user_not_initialized_message()
 
 
-if __name__ == "__main__":
+def main():
     # help string for the command parsing
     command_help = "Available commands are : \n" +\
                    "init     : Initialize the transfer cache for your JASMIN login\n"+\
@@ -328,3 +328,7 @@ if __name__ == "__main__":
         do_schedule(full_paths)
     elif args.cmd == "predict":
         do_predict(full_paths)
+
+
+if __name__ == "__main__":
+    main()
