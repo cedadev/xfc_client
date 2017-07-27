@@ -22,7 +22,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class settings:
     """Settings for the xfc command line tool."""
-    XFC_SERVER_URL = "https://192.168.51.25/xfc_control"  # location of the xfc_control server / app
+    XFC_SERVER_URL = "https://130.246.130.5/xfc_control"  # location of the xfc_control server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
     USER = os.environ["USER"] # the USER name
     VERSION = "0.1" # version of this software
@@ -54,12 +54,12 @@ class bcolors:
     UNDERLINE = '\033[4m'
     INVERT    = '\033[7m'
     ENDC      = '\033[0m'
-    
+
 
 def user_not_initialized_message():
     sys.stdout.write(bcolors.RED+\
-		  "** ERROR ** - User " + settings.USER + " not initialized yet." + bcolors.ENDC +\
-		  "  Run " + bcolors.YELLOW + "xfc.py init" + bcolors.ENDC + " first.\n")
+                  "** ERROR ** - User " + settings.USER + " not initialized yet." + bcolors.ENDC +\
+                  "  Run " + bcolors.YELLOW + "xfc.py init" + bcolors.ENDC + " first.\n")
 
 
 def print_response_error(response):
@@ -75,7 +75,7 @@ def do_init(email=""):
     data = {"name" : settings.USER}
     if email != "":
         data["email"] = email
-    	
+
     response = requests.post(url, data=json.dumps(data), verify=settings.VERIFY)
     # check the response code
     if response.status_code == 200:
@@ -89,8 +89,8 @@ def do_init(email=""):
     else:
         sys.stdout.write(bcolors.RED+\
               "** ERROR ** - cannot initialize user " + settings.USER + bcolors.ENDC + "\n")
-    
-    
+
+
 def do_email(email=""):
     """Update the email address of the user by sending a PUT request."""
     url = settings.XFC_API_URL + "user?name=" + settings.USER
@@ -114,7 +114,7 @@ def do_path():
         sys.stdout.write(data["cache_path"]+"\n")
     elif response.status_code == 404:
         user_not_initialized_message()
-        
+
 
 def do_quota():
     """Send the HTTP request (GET) and process to get the remaining quota and total quota for the user."""
@@ -135,10 +135,10 @@ def do_quota():
         else:
             sys.stdout.write(bcolors.GREEN)
         sys.stdout.write("    Remaining : " + sizeof_fmt(allocated - used) + bcolors.ENDC + "\n")
-        
+
         sys.stdout.write("------------------------\n")
         sys.stdout.write("    Total size: " + sizeof_fmt(total) + "\n")
-        sys.stdout.write("    Hard limit: " + sizeof_fmt(hard_limit) + "\n")        
+        sys.stdout.write("    Hard limit: " + sizeof_fmt(hard_limit) + "\n")
         if hard_limit - total < 0:
             sys.stdout.write(bcolors.RED)
         else:
@@ -182,7 +182,7 @@ def do_list(full_path, file_match, info):
     elif response.statis_code == 404:
         user_not_initialized_message()
 
-    
+
 def do_notify():
     """Send the HTTP request (PUT) to switch on / off notifications for the user."""
     # first get the status of notifications
@@ -203,8 +203,8 @@ def do_notify():
 
     elif response.status_code == 404:
         user_not_initialized_message()
-    
-    
+
+
 def do_schedule(full_paths):
     """Send the HTTP request (GET) to list the user's files which are scheduled for deletion."""
     # Get a list of scheduled deletions for this user
@@ -277,7 +277,7 @@ if __name__ == "__main__":
                    "notify   : Switch on / off email notifications of scheduled deletions (default is off)\n"+\
                    "schedule : List the files that are scheduled for deletion and their deletion time\n"+\
                    "predict  : Predict when the quota will be exceeded based on the current files and list which files will be deleted\n"
-                   
+
     parser = argparse.ArgumentParser(prog="XFC", formatter_class=argparse.RawTextHelpFormatter, 
                                      description="JASMIN transfer cache (XFC) command line tool")
     parser.add_argument("--version", action="version", version="%(prog)s " + settings.VERSION)
@@ -287,30 +287,30 @@ if __name__ == "__main__":
     parser.add_argument("-m", action="store", default="", help="Pattern to match against (substring search) when listing files")
     parser.add_argument("-i", action="store_true", default=False, help="Get file information when listing files")
     parser.add_argument("--email", action="store", default="", help="Email address for user in the init and email commands.")
-   
+
     args = parser.parse_args()
-    
+
     # do we show relative or full paths?
     if args.f:
         full_paths = True
     else:
         full_paths = False
-    
+
     # file to match against
     if args.m:
         file_match = args.m
     else:
         file_match = ""
-    
+
     if args.i:
         info = args.i
     else:
         info = False
-    
+
     if args.email:
-    	email = args.email
+        email = args.email
     else:
-    	email = ""
+        email = ""
     # switch on the commands
     if args.cmd == "init":
         do_init(email)
