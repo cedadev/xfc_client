@@ -9,7 +9,6 @@ import sys, os
 import argparse
 import requests
 import json
-import datetime
 import dateutil.parser
 import calendar
 
@@ -23,9 +22,10 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 class settings:
     """Settings for the xfc command line tool."""
     XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"  # location of the xfc_control server / app
+#    XFC_SERVER_URL = "https://192.168.51.25/xfc_control"  # location of the test server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
     USER = os.environ["USER"] # the USER name
-    VERSION = "0.1" # version of this software
+    VERSION = "0.3" # version of this software
     VERIFY = False
 
 
@@ -39,9 +39,9 @@ def sizeof_fmt(num):
         format_string = '{:>5.%sf} {}' % (num_decimals)
         return format_string.format(quotient, unit)
     elif num == 1:
-        return '1 bytes'
+        return '1 byte'
     else:
-        return '0 byte'
+        return '0 bytes'
 
 
 class bcolors:
@@ -127,7 +127,10 @@ def do_quota():
         total = data["total_used"]
         hard_limit = data["hard_limit_size"]
         sys.stdout.write(bcolors.MAGENTA+\
-              "Quota for user: " + settings.USER + "\n" + bcolors.ENDC +\
+              "------------------------\n" +\
+              "Quota for user: " + settings.USER + "\n" +\
+              "------------------------\n" + bcolors.ENDC +\
+              "  Temporal Quota (TQ)\n"
               "    Used      : " + sizeof_fmt(used) + "\n" +\
               "    Allocated : " + sizeof_fmt(allocated) + "\n")
         if allocated - used < 0:
@@ -137,8 +140,9 @@ def do_quota():
         sys.stdout.write("    Remaining : " + sizeof_fmt(allocated - used) + bcolors.ENDC + "\n")
 
         sys.stdout.write("------------------------\n")
-        sys.stdout.write("    Total size: " + sizeof_fmt(total) + "\n")
-        sys.stdout.write("    Hard limit: " + sizeof_fmt(hard_limit) + "\n")
+        sys.stdout.write("  Hard Quota (HQ)\n")
+        sys.stdout.write("    Used      : " + sizeof_fmt(total) + "\n")
+        sys.stdout.write("    Allocated : " + sizeof_fmt(hard_limit) + "\n")
         if hard_limit - total < 0:
             sys.stdout.write(bcolors.RED)
         else:
@@ -179,7 +183,7 @@ def do_list(full_path, file_match, info):
             sys.stdout.write(d["path"])
             # sys.stdout.write( out the other info if requested
             sys.stdout.write("\n")
-    elif response.statis_code == 404:
+    elif response.status_code == 404:
         user_not_initialized_message()
 
 
@@ -211,7 +215,7 @@ def do_schedule(full_paths):
     url = settings.XFC_API_URL + "scheduled_deletions?name=" + settings.USER
     response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
-        # HTTP API supports multiple scheduled deletions per user, even though this 
+        # HTTP API supports multiple scheduled deletions per user, even though this
         # functionality is not used yet, so just get the first
         data = response.json()[0]
         if len(data["files"]) == 0:
@@ -241,7 +245,7 @@ def do_predict(full_paths):
     url = settings.XFC_API_URL + "predict_deletions?name=" + settings.USER
     response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
-        # HTTP API supports multiple scheduled deletions per user, even though this 
+        # HTTP API supports multiple scheduled deletions per user, even though this
         # functionality is not used yet, so just get the first
         data = response.json()
         if len(data["files"]) == 0:
@@ -278,7 +282,7 @@ def main():
                    "schedule : List the files that are scheduled for deletion and their deletion time\n"+\
                    "predict  : Predict when the quota will be exceeded based on the current files and list which files will be deleted\n"
 
-    parser = argparse.ArgumentParser(prog="XFC", formatter_class=argparse.RawTextHelpFormatter, 
+    parser = argparse.ArgumentParser(prog="XFC", formatter_class=argparse.RawTextHelpFormatter,
                                      description="JASMIN transfer cache (XFC) command line tool")
     parser.add_argument("--version", action="version", version="%(prog)s " + settings.VERSION)
     parser.add_argument("cmd", choices=["init", "path", "email", "quota", "list", "notify", "schedule", "predict", "version"],
