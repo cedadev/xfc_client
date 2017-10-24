@@ -21,11 +21,12 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class settings:
     """Settings for the xfc command line tool."""
-    XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"  # location of the xfc_control server / app
-#    XFC_SERVER_URL = "https://192.168.51.25/xfc_control"  # location of the test server / app
+#    XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"  # location of the xfc_control server / app
+    XFC_SERVER_URL = "https://192.168.51.25/xfc_control"  # location of the test server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
-    USER = os.environ["USER"] # the USER name
-    VERSION = "0.3" # version of this software
+#    USER = os.environ["USER"] # the USER name
+    USER = "nrmassey"
+    VERSION = "0.4" # version of this software
     VERIFY = False
 
 
@@ -69,6 +70,15 @@ def print_response_error(response):
             print il
 
 
+def error_from_response(response):
+    try:
+        data = response.json()
+        if "error" in data:
+            sys.stdout.write(bcolors.RED + "** ERROR ** - " + data["error"] + bcolors.ENDC + "\n")
+    except:
+        sys.stdout.write(bcolors.RED + "** ERROR ** " + str(response.status_code) + bcolors.ENDC + "\n")
+
+
 def do_init(email=""):
     """Send the HTTP request (POST) to initialize a user's cache space."""
     url = settings.XFC_API_URL + "user"
@@ -82,13 +92,15 @@ def do_init(email=""):
         data = response.json()
         sys.stdout.write( bcolors.GREEN+\
               "** SUCCESS ** - user initiliazed with:\n" + bcolors.ENDC +\
-              "    username: " + data["name"] + "\n" +\
-              "    email: " + data["email"] + "\n" +\
-              "    quota: " + sizeof_fmt(data["quota_size"]) + "\n" +\
-              "    path: " + data["cache_path"] + "\n")
+              "    Username            : " + data["name"] + "\n" +\
+              "    Email               : " + data["email"] + "\n" +\
+              "    Temporal Quota (TQ) : " + sizeof_fmt(data["quota_size"]) + "\n" +\
+              "    Hard Quota (HQ)     : " + sizeof_fmt(data["hard_limit_size"]) + "\n" +\
+              "    Path                : " + data["cache_path"] + "\n")
     else:
         sys.stdout.write(bcolors.RED+\
               "** ERROR ** - cannot initialize user " + settings.USER + bcolors.ENDC + "\n")
+        error_from_response(response)
 
 
 def do_email(email=""):
@@ -103,6 +115,9 @@ def do_email(email=""):
               "** SUCCESS ** - user email updated to: " + data["email"] + bcolors.ENDC + "\n")
     elif response.status_code == 404:
         user_not_initialized_message()
+    else:
+        error_from_response(response)
+
 
 
 def do_path():
@@ -114,6 +129,9 @@ def do_path():
         sys.stdout.write(data["cache_path"]+"\n")
     elif response.status_code == 404:
         user_not_initialized_message()
+    else:
+        error_from_response(response)
+
 
 
 def do_quota():
@@ -151,6 +169,9 @@ def do_quota():
 
     elif response.status_code == 404:
         user_not_initialized_message()
+    else:
+        error_from_response(response)
+
 
 
 def do_list(full_path, file_match, info):
@@ -172,19 +193,24 @@ def do_list(full_path, file_match, info):
                 if d["size"] >= 1024**2 and d["size"] < 1024**3:
                     sys.stdout.write(bcolors.GREEN)
                 elif d["size"] >= 1024**3 and d["size"] < 1024**4:
-                    sys.stdout.write( bcolors.YELLOW)
+                    sys.stdout.write(bcolors.YELLOW)
                 elif d["size"] >= 1024**4:
                     sys.stdout.write(bcolors.RED)
                 sys.stdout.write(sizeof_fmt(d["size"]))
                 sys.stdout.write(bcolors.ENDC)
-                # sys.stdout.write( the date
+                # the date
                 date = dateutil.parser.parse(d["first_seen"])
                 sys.stdout.write("% 2i %s %d %02d:%02d  " % (date.day, calendar.month_abbr[date.month], date.year, date.hour, date.minute))
+                # colour code quota
+                sys.stdout.write(bcolors.MAGENTA + "(TQ)")
+                sys.stdout.write(sizeof_fmt(d["quota_used"]) + bcolors.ENDC + " ")
             sys.stdout.write(d["path"])
             # sys.stdout.write( out the other info if requested
             sys.stdout.write("\n")
     elif response.status_code == 404:
         user_not_initialized_message()
+    else:
+        error_from_response(response)
 
 
 def do_notify():
@@ -207,6 +233,9 @@ def do_notify():
 
     elif response.status_code == 404:
         user_not_initialized_message()
+    else:
+        error_from_response(response)
+
 
 
 def do_schedule(full_paths):
@@ -237,6 +266,9 @@ def do_schedule(full_paths):
         sys.stdout.write(bcolors.ENDC)
     elif response.status_code == 404:
         user_not_initialized_message()
+    else:
+        error_from_response(response)
+
 
 
 def do_predict(full_paths):
@@ -268,6 +300,8 @@ def do_predict(full_paths):
             sys.stdout.write("   " + path + "\n")
     elif response.status_code == 404:
         user_not_initialized_message()
+    else:
+        error_from_response(reponse)
 
 
 def main():
