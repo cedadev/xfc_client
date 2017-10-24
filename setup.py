@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='xfc_client',
-    version='0.4',
+    version='0.4.1',
     packages=['xfc_client'],
     install_requires=['requests',
                       'python_dateutil',
