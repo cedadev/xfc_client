@@ -24,7 +24,7 @@ class settings:
     XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"  # location of the xfc_control server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
     USER = os.environ["USER"] # the USER name
-    VERSION = "0.4.1" # version of this software
+    VERSION = "0.4.2" # version of this software
     VERIFY = False
 
 
@@ -75,6 +75,7 @@ def error_from_response(response):
             sys.stdout.write(bcolors.RED + "** ERROR ** - " + data["error"] + bcolors.ENDC + "\n")
     except:
         sys.stdout.write(bcolors.RED + "** ERROR ** " + str(response.status_code) + bcolors.ENDC + "\n")
+        print(response.content)
 
 
 def do_init(email=""):
@@ -102,20 +103,31 @@ def do_init(email=""):
 
 
 def do_email(email=""):
-    """Update the email address of the user by sending a PUT request."""
+    """Update the email address of the user by sending a PUT request if an email is given,
+       or return the email if no email supplied."""
     url = settings.XFC_API_URL + "user?name=" + settings.USER
-    data = {"name" : settings.USER,
-            "email": email}
-    response = requests.put(url, data=json.dumps(data), verify=settings.VERIFY)
-    if response.status_code == 200:
-        data = response.json()
-        sys.stdout.write(bcolors.GREEN+\
-              "** SUCCESS ** - user email updated to: " + data["email"] + bcolors.ENDC + "\n")
-    elif response.status_code == 404:
-        user_not_initialized_message()
+    if email != "":
+        data = {"name" : settings.USER,
+                "email": email}
+        response = requests.put(url, data=json.dumps(data), verify=settings.VERIFY)
+        if response.status_code == 200:
+            data = response.json()
+            sys.stdout.write(bcolors.GREEN+\
+                  "** SUCCESS ** - user email updated to: " + data["email"] + bcolors.ENDC + "\n")
+        elif response.status_code == 404:
+            user_not_initialized_message()
+        else:
+            error_from_response(response)
     else:
-        error_from_response(response)
-
+        data = {"name" : settings.USER}
+        response = requests.get(url, data=json.dumps(data), verify=settings.VERIFY)
+        if response.status_code == 200:
+            data = response.json()
+            sys.stdout.write(data["email"] + "\n")
+        elif response.status_code == 404:
+            user_not_initialized_message()
+        else:
+            error_from_response(response)
 
 
 def do_path():
@@ -306,7 +318,7 @@ def main():
     # help string for the command parsing
     command_help = "Available commands are : \n" +\
                    "init     : Initialize the transfer cache for your JASMIN login\n"+\
-                   "email    : Set / update email address\n"+\
+                   "email    : view, set or update email address\n"+\
                    "path     : Get the path to your storage area in the transfer cache\n"+\
                    "quota    : Get the remaining free space in your quota\n"+\
                    "list     : List the files in your storage area in the transfer cache\n"+\
