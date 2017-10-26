@@ -24,7 +24,7 @@ class settings:
     XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"  # location of the xfc_control server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
     USER = os.environ["USER"] # the USER name
-    VERSION = "0.4.2" # version of this software
+    VERSION = "0.4.3" # version of this software
     VERIFY = False
 
 
@@ -75,7 +75,6 @@ def error_from_response(response):
             sys.stdout.write(bcolors.RED + "** ERROR ** - " + data["error"] + bcolors.ENDC + "\n")
     except:
         sys.stdout.write(bcolors.RED + "** ERROR ** " + str(response.status_code) + bcolors.ENDC + "\n")
-        print(response.content)
 
 
 def do_init(email=""):
