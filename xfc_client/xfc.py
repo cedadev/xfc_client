@@ -23,8 +23,8 @@ class settings:
     """Settings for the xfc command line tool."""
     XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"  # location of the xfc_control server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
-    USER = os.environ["USER"] # the USER name
-    VERSION = "0.4.3" # version of this software
+    USER = "nrmassey"
+    VERSION = "0.4.4" # version of this software
     VERIFY = False
 
 
@@ -57,7 +57,7 @@ class bcolors:
 
 def user_not_initialized_message():
     sys.stdout.write(bcolors.RED+\
-                  "** ERROR ** - User " + settings.USER + " not initialized yet." + bcolors.ENDC +\
+                  "** ERROR ** - User " + settings.USER + " not initialised yet." + bcolors.ENDC +\
                   "  Run " + bcolors.YELLOW + "xfc.py init" + bcolors.ENDC + " first.\n")
 
 
@@ -89,15 +89,15 @@ def do_init(email=""):
     if response.status_code == 200:
         data = response.json()
         sys.stdout.write( bcolors.GREEN+\
-              "** SUCCESS ** - user initiliazed with:\n" + bcolors.ENDC +\
+              "** SUCCESS ** - user initialised with:\n" + bcolors.ENDC +\
               "    Username            : " + data["name"] + "\n" +\
               "    Email               : " + data["email"] + "\n" +\
-              "    Temporal Quota (TQ) : " + sizeof_fmt(data["quota_size"]) + "\n" +\
+              "    Temporal Quota (TQ) : " + sizeof_fmt(data["quota_size"]) + " days\n" +\
               "    Hard Quota (HQ)     : " + sizeof_fmt(data["hard_limit_size"]) + "\n" +\
               "    Path                : " + data["cache_path"] + "\n")
     else:
         sys.stdout.write(bcolors.RED+\
-              "** ERROR ** - cannot initialize user " + settings.USER + bcolors.ENDC + "\n")
+              "** ERROR ** - cannot initialise user " + settings.USER + bcolors.ENDC + "\n")
         error_from_response(response)
 
 
@@ -129,6 +129,25 @@ def do_email(email=""):
             error_from_response(response)
 
 
+def do_info():
+    """(re)print the info you get on initialising a user"""
+    url = settings.XFC_API_URL + "user?name=" + settings.USER
+    response = requests.get(url, verify=settings.VERIFY)
+    if response.status_code == 200:
+        data = response.json()
+        sys.stdout.write( bcolors.GREEN+\
+          "** SUCCESS ** - user info:\n" + bcolors.ENDC +\
+          "    Username            : " + data["name"] + "\n" +\
+          "    Email               : " + data["email"] + "\n" +\
+          "    Temporal Quota (TQ) : " + sizeof_fmt(data["quota_size"]) + " days\n" +\
+          "    Hard Quota (HQ)     : " + sizeof_fmt(data["hard_limit_size"]) + "\n" +\
+          "    Path                : " + data["cache_path"] + "\n")
+    elif response.status_code == 404:
+        user_not_initialized_message()
+    else:
+        error_from_response(response)
+
+
 def do_path():
     """Send the HTTP request (GET) and process to get the path to the user space on the cache."""
     url = settings.XFC_API_URL + "user?name=" + settings.USER
@@ -154,19 +173,19 @@ def do_quota():
         total = data["total_used"]
         hard_limit = data["hard_limit_size"]
         sys.stdout.write(bcolors.MAGENTA+\
-              "------------------------\n" +\
+              "-----------------------------\n" +\
               "Quota for user: " + settings.USER + "\n" +\
-              "------------------------\n" + bcolors.ENDC +\
+              "-----------------------------\n" + bcolors.ENDC +\
               "  Temporal Quota (TQ)\n"
-              "    Used      : " + sizeof_fmt(used) + "\n" +\
-              "    Allocated : " + sizeof_fmt(allocated) + "\n")
+              "    Used      : " + sizeof_fmt(used) + " days\n" +\
+              "    Allocated : " + sizeof_fmt(allocated) + " days\n")
         if allocated - used < 0:
             sys.stdout.write(bcolors.RED)
         else:
             sys.stdout.write(bcolors.GREEN)
-        sys.stdout.write("    Remaining : " + sizeof_fmt(allocated - used) + bcolors.ENDC + "\n")
+        sys.stdout.write("    Remaining : " + sizeof_fmt(allocated - used) + bcolors.ENDC + " days\n")
 
-        sys.stdout.write("------------------------\n")
+        sys.stdout.write("-----------------------------\n")
         sys.stdout.write("  Hard Quota (HQ)\n")
         sys.stdout.write("    Used      : " + sizeof_fmt(total) + "\n")
         sys.stdout.write("    Allocated : " + sizeof_fmt(hard_limit) + "\n")
@@ -182,40 +201,61 @@ def do_quota():
         error_from_response(response)
 
 
+def print_file_list(data, full_path, info, sort_tq, sort_hq, list_limit):
+    """Write out the file list held in data, optionally printing the extra info.
+       The list can first be sorted by temporal quota, hard quota and limited in number of files output."""
 
-def do_list(full_path, file_match, info):
+    # check which key we should sort by
+    if sort_tq:
+        sorted_data = sorted(data, key=lambda fl: fl["quota_used"], reverse=True)
+    elif sort_hq:
+        sorted_data = sorted(data, key=lambda fl: fl["size"], reverse=True)
+    else:
+        sorted_data = data
+    # check for limit
+    if list_limit > 0:
+        limited_data = sorted_data[:list_limit]
+    else:
+        limited_data = sorted_data
+
+    # loop over just the limited data
+    for d in limited_data:
+        if info:
+            # colour code size
+            if d["size"] >= 1024**2 and d["size"] < 1024**3:
+                sys.stdout.write(bcolors.GREEN)
+            elif d["size"] >= 1024**3 and d["size"] < 1024**4:
+                sys.stdout.write(bcolors.YELLOW)
+            elif d["size"] >= 1024**4:
+                sys.stdout.write(bcolors.RED)
+            sys.stdout.write(sizeof_fmt(d["size"]))
+            sys.stdout.write(bcolors.ENDC)
+            # the date
+            date = dateutil.parser.parse(d["first_seen"])
+            sys.stdout.write("% 2i %s %d %02d:%02d  " % (date.day, calendar.month_abbr[date.month], date.year, date.hour, date.minute))
+            # colour code quota
+            sys.stdout.write(bcolors.MAGENTA + "(TQ)")
+            sys.stdout.write(sizeof_fmt(d["quota_used"]) + "d " + bcolors.ENDC)
+        if full_path:
+            path = d["cache_disk"] + "/" + d["path"]
+        else:
+            path = d["path"]
+
+        sys.stdout.write(path)
+        # sys.stdout.write( out the other info if requested
+        sys.stdout.write("\n")
+
+
+def do_list(full_path, file_match, info, sort_tq, sort_hq, list_limit):
     """Send the HTTP request (GET) to list the user's files in the transfer cache."""
     url = settings.XFC_API_URL + "file?name=" + settings.USER
     if file_match:
         url += "&match=" + file_match
-    if full_path:
-        url += "&full_path=1"
-    else:
-        url += "&full_path=0"
     # send the request
     response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
         data = response.json()
-        for d in data:
-            if info:
-                # colour code size
-                if d["size"] >= 1024**2 and d["size"] < 1024**3:
-                    sys.stdout.write(bcolors.GREEN)
-                elif d["size"] >= 1024**3 and d["size"] < 1024**4:
-                    sys.stdout.write(bcolors.YELLOW)
-                elif d["size"] >= 1024**4:
-                    sys.stdout.write(bcolors.RED)
-                sys.stdout.write(sizeof_fmt(d["size"]))
-                sys.stdout.write(bcolors.ENDC)
-                # the date
-                date = dateutil.parser.parse(d["first_seen"])
-                sys.stdout.write("% 2i %s %d %02d:%02d  " % (date.day, calendar.month_abbr[date.month], date.year, date.hour, date.minute))
-                # colour code quota
-                sys.stdout.write(bcolors.MAGENTA + "(TQ)")
-                sys.stdout.write(sizeof_fmt(d["quota_used"]) + bcolors.ENDC + " ")
-            sys.stdout.write(d["path"])
-            # sys.stdout.write( out the other info if requested
-            sys.stdout.write("\n")
+        print_file_list(data, full_path, info, sort_tq, sort_hq, list_limit)
     elif response.status_code == 404:
         user_not_initialized_message()
     else:
@@ -247,7 +287,7 @@ def do_notify():
 
 
 
-def do_schedule(full_paths):
+def do_schedule(full_path, info, sort_tq, sort_hq, list_limit):
     """Send the HTTP request (GET) to list the user's files which are scheduled for deletion."""
     # Get a list of scheduled deletions for this user
     url = settings.XFC_API_URL + "scheduled_deletions?name=" + settings.USER
@@ -259,28 +299,21 @@ def do_schedule(full_paths):
         if len(data["files"]) == 0:
             sys.stdout.write(bcolors.GREEN + "No files scheduled for deletion\n" + bcolors.ENDC)
             return
-        mountpoint = data["cache_disk"]
+
         date = dateutil.parser.parse(data["time_delete"])
         # print the Scheduled message
         sys.stdout.write(bcolors.RED + "Files scheduled for deletion on")
         sys.stdout.write("% 2i %s %d %02d:%02d" % (date.day, calendar.month_abbr[date.month], date.year, date.hour, date.minute))
         sys.stdout.write(bcolors.ENDC + "\n")
-        # loop over all the files
-        for file in data["files"]:
-            if full_paths:
-                path = data["cache_disk"] + file
-            else:
-                path = file
-            sys.stdout.write("   " + path + "\n")
-        sys.stdout.write(bcolors.ENDC)
+        # print the files
+        print_file_list(data["files"], full_path, info, sort_tq, sort_hq, list_limit)
     elif response.status_code == 404:
         user_not_initialized_message()
     else:
         error_from_response(response)
 
 
-
-def do_predict(full_paths):
+def do_predict(full_path, info, sort_tq, sort_hq, list_limit):
     """Send the HTTP request to the service which predicts when the user will exceed their quota"""
     # Get a list of scheduled deletions for this user
     url = settings.XFC_API_URL + "predict_deletions?name=" + settings.USER
@@ -292,25 +325,19 @@ def do_predict(full_paths):
         if len(data["files"]) == 0:
             sys.stdout.write(bcolors.GREEN + "Quota will never be exceeded!\n" + bcolors.ENDC)
             return
-        mountpoint = data["cache_disk"]
         date = dateutil.parser.parse(data["time_predict"])
         sys.stdout.write(bcolors.RED + "Quota is predicted to be exceeded on")
         sys.stdout.write("% 2i %s %d %02d:%02d" % (date.day, calendar.month_abbr[date.month], date.year, date.hour, date.minute))
-        sys.stdout.write(" by " + sizeof_fmt(data["over_quota"]))
+        sys.stdout.write(" by " + sizeof_fmt(data["over_quota"]) + " days")
         sys.stdout.write(bcolors.ENDC + "\n")
         # print the Scheduled message
         sys.stdout.write("Files predicted to be deleted\n")
-        # loop over all the files
-        for file in data["files"]:
-            if full_paths:
-                path = data["cache_disk"] + file
-            else:
-                path = file
-            sys.stdout.write("   " + path + "\n")
+        # print the files
+        print_file_list(data["files"], full_path, info, sort_tq, sort_hq, list_limit)
     elif response.status_code == 404:
         user_not_initialized_message()
     else:
-        error_from_response(reponse)
+        error_from_response(response)
 
 
 def main():
@@ -318,30 +345,34 @@ def main():
     command_help = "Available commands are : \n" +\
                    "init     : Initialize the transfer cache for your JASMIN login\n"+\
                    "email    : view, set or update email address\n"+\
+                   "info     : Get the user info\n"+\
+                   "notify   : Switch on / off email notifications of scheduled deletions (default is off)\n"+\
                    "path     : Get the path to your storage area in the transfer cache\n"+\
                    "quota    : Get the remaining free space in your quota\n"+\
                    "list     : List the files in your storage area in the transfer cache\n"+\
-                   "notify   : Switch on / off email notifications of scheduled deletions (default is off)\n"+\
                    "schedule : List the files that are scheduled for deletion and their deletion time\n"+\
                    "predict  : Predict when the quota will be exceeded based on the current files and list which files will be deleted\n"
 
     parser = argparse.ArgumentParser(prog="XFC", formatter_class=argparse.RawTextHelpFormatter,
                                      description="JASMIN transfer cache (XFC) command line tool")
     parser.add_argument("--version", action="version", version="%(prog)s " + settings.VERSION)
-    parser.add_argument("cmd", choices=["init", "path", "email", "quota", "list", "notify", "schedule", "predict", "version"],
+    parser.add_argument("cmd", choices=["init", "path", "email", "info", "quota", "list", "notify", "schedule", "predict", "version"],
                                help=command_help, metavar="command")
-    parser.add_argument("-f", action="store_true", default=False, help="Show full paths when listing files (default is off)")
-    parser.add_argument("-m", action="store", default="", help="Pattern to match against (substring search) when listing files")
-    parser.add_argument("-i", action="store_true", default=False, help="Get file information when listing files")
     parser.add_argument("--email", action="store", default="", help="Email address for user in the init and email commands.")
+    parser.add_argument("-f", action="store_true", default=False, help="Show full paths in list / schedule / predict (default is False)")
+    parser.add_argument("-m", action="store", default="", help="Pattern to match against (substring search) in list / schedule / predict")
+    parser.add_argument("-i", action="store_true", default=False, help="Get file information in list / schedule / predict (default is False)")
+    parser.add_argument("-t", action="store_true", default=False, help="Sort by temporal quota in list / schedule / predict (default is False)")
+    parser.add_argument("-s", action="store_true", default=False, help="Sort by file size in list / schedule / predict (default is False)")
+    parser.add_argument("-l", action="store", default="", help="Limit number of files output in list / schedule / predict")
 
     args = parser.parse_args()
 
     # do we show relative or full paths?
     if args.f:
-        full_paths = True
+        full_path = True
     else:
-        full_paths = False
+        full_path = False
 
     # file to match against
     if args.m:
@@ -358,24 +389,45 @@ def main():
         email = args.email
     else:
         email = ""
+
+    if args.t and args.s:
+        sys.stdout.write(bcolors.RED + "** ERROR ** cannot sort by both Temporal Quota used (TQ) and file size (HQ)." + bcolors.ENDC + "\n")
+        sys.exit()
+
+    if args.t:
+        sort_tq = args.t
+    else:
+        sort_tq = False
+
+    if args.s:
+        sort_hq = args.s
+    else:
+        sort_hq = False
+
+    if args.l:
+        list_limit = int(args.l)
+    else:
+        list_limit = 0
+
     # switch on the commands
     if args.cmd == "init":
         do_init(email)
     elif args.cmd == "email":
         do_email(email)
+    elif args.cmd == "info":
+        do_info()
     elif args.cmd == "path":
         do_path()
     elif args.cmd == "quota":
         do_quota()
     elif args.cmd == "list":
-        do_list(full_paths, file_match, info)
+        do_list(full_path, file_match, info, sort_tq, sort_hq, list_limit)
     elif args.cmd == "notify":
         do_notify()
     elif args.cmd == "schedule":
-        do_schedule(full_paths)
+        do_schedule(full_path, info, sort_tq, sort_hq, list_limit)
     elif args.cmd == "predict":
-        do_predict(full_paths)
-
+        do_predict(full_path, info, sort_tq, sort_hq, list_limit)
 
 if __name__ == "__main__":
     main()
