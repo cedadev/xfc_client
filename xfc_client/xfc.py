@@ -23,8 +23,8 @@ class settings:
     """Settings for the xfc command line tool."""
     XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"  # location of the xfc_control server / app
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
-    USER = "nrmassey"
-    VERSION = "0.4.4" # version of this software
+    USER = os.environ["USER"]
+    VERSION = "0.4.5" # version of this software
     VERIFY = False
 
 
@@ -63,6 +63,7 @@ def user_not_initialized_message():
 
 def print_response_error(response):
     """Print a concise summary of the error, rather than a whole output of html"""
+    print response.content
     for il in response.content.split("\n"):
         if "Exception" in il:
             print il
@@ -337,6 +338,7 @@ def do_predict(full_path, info, sort_tq, sort_hq, list_limit):
     elif response.status_code == 404:
         user_not_initialized_message()
     else:
+        print_response_error(response)
         error_from_response(response)
 
 
