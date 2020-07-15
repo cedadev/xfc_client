@@ -21,14 +21,17 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class settings:
     """Settings for the xfc command line tool."""
-    XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"  # location of the xfc_control server / app
+    # location of the xfc_control server / app
+    XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
     USER = os.environ["USER"]
     VERSION = "0.4.5" # version of this software
     VERIFY = False
 
 
-unit_list = zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB'], [0, 0, 1, 1, 1, 1, 1])
+unit_list = list(zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB'],
+                     [0, 0, 1, 1, 1, 1, 1]))
+
 def sizeof_fmt(num):
     """Human friendly file size"""
     if num > 1:
@@ -63,10 +66,9 @@ def user_not_initialized_message():
 
 def print_response_error(response):
     """Print a concise summary of the error, rather than a whole output of html"""
-    print response.content
     for il in response.content.split("\n"):
         if "Exception" in il:
-            print il
+            print(il)
 
 
 def error_from_response(response):
@@ -353,7 +355,7 @@ def main():
                    "quota    : Get the remaining free space in your quota\n"+\
                    "list     : List the files in your storage area in the transfer cache\n"+\
                    "schedule : List the files that are scheduled for deletion and their deletion time\n"+\
-                   "predict  : Predict when the quota will be exceeded based on the current files and list which files will be deleted\n"
+                   "predict  : Predict when the quota will be exceeded based on the current files\n"
 
     parser = argparse.ArgumentParser(prog="XFC", formatter_class=argparse.RawTextHelpFormatter,
                                      description="JASMIN transfer cache (XFC) command line tool")
