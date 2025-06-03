@@ -13,7 +13,7 @@ import dateutil.parser
 import calendar
 
 from math import log
-
+from xfc_client import VERSION
 # switch off warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -22,10 +22,10 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 class settings:
     """Settings for the xfc command line tool."""
     # location of the xfc_control server / app
-    XFC_SERVER_URL = "https://xfc.ceda.ac.uk/xfc_control"
+    XFC_SERVER_URL = "https://xfc2.jasmin.ac.uk/xfc_control"
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
-    USER = os.environ["USER"]
-    VERSION = "0.4.5" # version of this software
+    USER = "nrmassey" #os.environ["USER"]
+    VERSION = VERSION # version of this software
     VERIFY = False
 
 
