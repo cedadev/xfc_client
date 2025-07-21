@@ -24,7 +24,7 @@ class settings:
     # location of the xfc_control server / app
     XFC_SERVER_URL = "https://xfc2.jasmin.ac.uk/xfc_control"
     XFC_API_URL = XFC_SERVER_URL + "/api/v1/"
-    USER = "nrmassey" #os.environ["USER"]
+    USER = os.environ["USER"]
     VERSION = VERSION # version of this software
     VERIFY = False
 
