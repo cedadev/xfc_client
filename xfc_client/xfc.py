@@ -9,8 +9,6 @@ import sys, os
 import argparse
 import requests
 import json
-import dateutil.parser
-import calendar
 
 from math import log
 from xfc_client import VERSION
@@ -28,7 +26,10 @@ class settings:
     XFC_SERVER_URL = "https://xfc.jasmin.ac.uk/xfc_control"
     XFC_SERVER_URL = "http://127.0.0.1:8000/xfc_control"
     XFC_API_URL = XFC_SERVER_URL + "/api/v1.1/"
-    USER = os.environ["USER"]
+    try:
+        USER = os.environ["XFC_USER"]
+    except KeyError:
+        USER = os.environ["USER"]
     VERSION = VERSION  # version of this software
     VERIFY = False
 
@@ -311,7 +312,38 @@ def do_predict():
     url = settings.XFC_API_URL + "predict?name=" + settings.USER
     response = requests.get(url, verify=settings.VERIFY)
     if response.status_code == 200:
-        pass
+        data = response.json()
+        name = data["name"]
+        over_quota = data["over_quota"]
+        path = data["cache_disk"]
+        time_predict = data["time_predict"]
+        pad = "".join(["-" for x in name])
+
+        sys.stdout.write(
+            bcolors.MAGENTA
+            + "------------------------------------"
+            + pad
+            + "\n"
+            + "Quota exceeded prediction for user: "
+            + name
+            + "\n"
+            + "------------------------------------"
+            + pad
+            + "\n"
+            + bcolors.ENDC
+        )
+        if over_quota > 0:
+            sys.stdout.write(bcolors.RED)
+            sys.stdout.write(
+                "    Over quota by : " + sizeof_fmt(over_quota) + " days\n"
+            )
+        else:
+            sys.stdout.write(bcolors.GREEN)
+            sys.stdout.write("    Quota will not be exceeded\n")
+        if time_predict is not None:
+            sys.stdout.write("    On date       : " + time_predict + "\n")
+        sys.stdout.write(bcolors.ENDC)
+
     elif response.status_code == 404:
         user_not_initialized_message()
     else:
