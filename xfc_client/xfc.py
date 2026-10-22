@@ -24,7 +24,6 @@ class settings:
 
     # location of the xfc_control server / app
     XFC_SERVER_URL = "https://xfc.jasmin.ac.uk/xfc_control"
-    XFC_SERVER_URL = "http://127.0.0.1:8000/xfc_control"
     XFC_API_URL = XFC_SERVER_URL + "/api/v1.1/"
     try:
         USER = os.environ["XFC_USER"]
@@ -48,9 +47,9 @@ def sizeof_fmt(num):
         format_string = "{:>5.%sf} {}" % (num_decimals)
         return format_string.format(quotient, unit)
     elif num == 1:
-        return "1 byte"
+        return "  1 byte"
     else:
-        return "0 bytes"
+        return "  0 bytes"
 
 
 class bcolors:
