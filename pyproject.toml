@@ -1,0 +1,37 @@
+[build-system]
+  requires = ["setuptools >= 77.0.3"]
+  build-backend = "setuptools.build_meta"
+
+[project]
+  name = "xfc-client"
+  version = "1.1.2"
+  authors = [
+    { name="Neil Massey", email="neil.massey@stfc.ac.uk" },
+  ]
+  description = "Client library and command line tool for the Transfer Cache (XFC)."
+  readme = "README.md"
+  requires-python = ">=3.14"
+  classifiers = [
+      "Programming Language :: Python :: 3",
+      "Operating System :: OS Independent",
+  ]
+  license = "BSD-2-Clause"
+  license-files = ["LICEN[CS]E*"]
+  dependencies = [
+    "certifi>=2026.10.19",
+    "charset-normalizer>=3.4.2",
+    "idna>=3.15",
+    "python-dateutil>=2.9.0.post0",
+    "pip>=26.2.2",
+    "requests>=2.33.0",
+    "six>=1.17.0",
+    "urllib3>=2.8.0",
+  ]
+
+
+[project.urls]
+  Homepage = "https://github.com/cedadev/xfc_client"
+  Issues = "https://github.com/cedadev/xfc_client/issues"
+
+[project.scripts]
+  xfc = "xfc_client.xfc:main"

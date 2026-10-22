@@ -356,7 +356,7 @@ def main():
         + "init     : Initialize the transfer cache for your JASMIN login\n"
         + "email    : view, set or update email address\n"
         + "info     : Get the user info\n"
-        + "notify   : Switch on / off email notifications of scheduled deletions (default is off)\n"
+        + "notify   : Switch on / off email notifications of exceeding the quota (default is off)\n"
         + "path     : Get the path to your storage area in the transfer cache\n"
         + "quota    : Get the remaining free space in your quota\n"
         + "predict  : Predict when the quota will be exceeded based on the current files\n"
