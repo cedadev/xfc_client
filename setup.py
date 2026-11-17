@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-VERSION = "1.1.3"
+VERSION = "1.1.4"
 
 with open(os.path.join(os.path.dirname(__file__), "README.rst")) as readme:
     README = readme.read()
@@ -34,10 +34,12 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: BSD License",  # example license
         "Operating System :: OS Independent",
-        "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     ],
